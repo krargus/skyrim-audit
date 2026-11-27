@@ -1,15 +1,20 @@
 name: Release build
 
-# Rebuilds the Windows binary and refreshes the zip attached to the release.
-# Runs when a v* tag is pushed, or by hand. Commits to main deliberately do NOT
-# rebuild: the published zip's SHA-256 is recorded in CHECKSUMS.txt, and a new
-# asset on every commit would make that note wrong within minutes.
-# A tag build needs a release to exist for that tag (gh release upload fails
-# otherwise), and the numbers in CHECKSUMS.txt should be updated with it.
+# Builds skyrim-audit.exe from this repository's Go source and attaches the share
+# zip to the release, so publishing a release never needs a manual upload.
+# Runs when a release is published (including a draft published from the GitHub
+# UI) and by hand, to rebuild an existing release on purpose. A plain commit or
+# tag does not rebuild: the zip's SHA-256 is recorded in CHECKSUMS.txt, so a new
+# asset on every push would make that note wrong within minutes.
 on:
-  push:
-    tags: ["v*"]
+  release:
+    types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach the zip to
+        required: true
+        default: v1.0.0
 
 permissions:
   contents: write
@@ -18,7 +23,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out the released source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - uses: actions/setup-go@v5
         with:
@@ -37,5 +45,5 @@ jobs:
       - name: Attach zip to the release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0' }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: gh release upload "$TAG" skyrim-audit-share.zip --clobber --repo "${{ github.repository }}"
