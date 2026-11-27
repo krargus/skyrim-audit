@@ -433,29 +433,52 @@ func TestAuditPluginMissing(t *testing.T) {
 	}
 }
 
-// Disabling the losing mod is one of the two remedies the warning offers, so it
-// has to clear the warning: a disabled mod is never mounted, and its copy can
-// neither win the file nor fight over it later.
-func TestAuditDuplicatePluginClearsWhenLoserDisabled(t *testing.T) {
-	f := newFixture(t)
-	f.dataPlugin("Skyrim.esm", buildPlugin(flagMaster, 1.7, nil, 2))
-	f.modPlugin("First", "Shared.esp", buildPlugin(0, 1.7, []string{"Skyrim.esm"}, 3))
-	f.modPlugin("Second", "Shared.esp", buildPlugin(0, 1.7, []string{"Skyrim.esm"}, 4))
-	f.modlist("+First", "+Second")
-	f.plugins("*Skyrim.esm", "*Shared.esp")
-
-	if !hasCode(f.run(), "DUPLICATE_PLUGIN") {
-		t.Fatal("two enabled copies must warn before the loser is disabled")
+// The warning offers two remedies - delete the losing copy, or disable the mod
+// shipping it - so either one has to clear it. Both start from the same state:
+// two enabled copies, with First ahead of Second in modlist.txt, so First wins
+// and Second's copy is the loser the message points at.
+func TestAuditDuplicatePluginClearsWhenLoserGone(t *testing.T) {
+	twoCopies := func(t *testing.T) *fixture {
+		t.Helper()
+		f := newFixture(t)
+		f.dataPlugin("Skyrim.esm", buildPlugin(flagMaster, 1.7, nil, 2))
+		f.modPlugin("First", "Shared.esp", buildPlugin(0, 1.7, []string{"Skyrim.esm"}, 3))
+		f.modPlugin("Second", "Shared.esp", buildPlugin(0, 1.7, []string{"Skyrim.esm"}, 4))
+		f.modlist("+First", "+Second")
+		f.plugins("*Skyrim.esm", "*Shared.esp")
+		if !hasCode(f.run(), "DUPLICATE_PLUGIN") {
+			t.Fatal("two enabled copies must warn before the loser is dealt with")
+		}
+		return f
 	}
 
-	f.modlist("+First", "-Second")
-	res := f.run()
-	if hasCode(res, "DUPLICATE_PLUGIN") {
-		t.Errorf("disabling the losing mod must clear the warning: %+v", res.Findings)
-	}
-	if res.Counts.Error != 0 {
-		t.Errorf("the winner must still provide the plugin: %+v", res.Findings)
-	}
+	t.Run("loser disabled", func(t *testing.T) {
+		f := twoCopies(t)
+		f.modlist("+First", "-Second")
+		res := f.run()
+		if hasCode(res, "DUPLICATE_PLUGIN") {
+			t.Errorf("disabling the losing mod must clear the warning: %+v", res.Findings)
+		}
+		if res.Counts.Error != 0 {
+			t.Errorf("the winner must still provide the plugin: %+v", res.Findings)
+		}
+	})
+
+	// Deleting the file leaves the losing mod installed and enabled but empty,
+	// which is the other half of the advice and must clear the warning too.
+	t.Run("loser copy deleted", func(t *testing.T) {
+		f := twoCopies(t)
+		if err := os.Remove(filepath.Join(f.dir, "mods", "Second", "Shared.esp")); err != nil {
+			t.Fatalf("delete losing copy: %v", err)
+		}
+		res := f.run()
+		if hasCode(res, "DUPLICATE_PLUGIN") {
+			t.Errorf("deleting the losing copy must clear the warning: %+v", res.Findings)
+		}
+		if res.Counts.Error != 0 || len(res.BrokenPlugins) != 0 {
+			t.Errorf("the winner must still provide the plugin: %+v broken=%v", res.Findings, res.BrokenPlugins)
+		}
+	})
 }
 
 func TestAuditLightOverCapacity(t *testing.T) {
