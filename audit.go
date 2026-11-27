@@ -668,12 +668,35 @@ func (m *Mo2Instance) locate(refs map[string][]pluginRef, name string) (path, so
 		path, source = list[0].path, "mod:"+list[0].mod
 	}
 	if path == "" && m.GameData != "" {
-		candidate := filepath.Join(m.GameData, name)
-		if st, err := os.Stat(candidate); err == nil && !st.IsDir() {
+		if candidate := m.dataPluginPath(name); candidate != "" {
 			path, source = candidate, "Data"
 		}
 	}
 	return path, source, shippedBy
+}
+
+// dataPluginPath finds a plugin in the game's Data folder the way the engine
+// does: names compare without regard to case, so a hand-edited plugins.txt naming
+// skyrim.esm has to find the Skyrim.esm the game ships. The exact spelling is
+// tried first because it is the common case, and only a miss pays for a directory
+// listing. Relying on the filesystem alone would make the audit's answer depend on
+// the host: the same profile would report a missing plugin on a case-sensitive
+// filesystem and audit clean on Windows.
+func (m *Mo2Instance) dataPluginPath(name string) string {
+	direct := filepath.Join(m.GameData, name)
+	if st, err := os.Stat(direct); err == nil && !st.IsDir() {
+		return direct
+	}
+	entries, err := os.ReadDir(m.GameData)
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if !e.IsDir() && strings.EqualFold(e.Name(), name) {
+			return filepath.Join(m.GameData, e.Name())
+		}
+	}
+	return ""
 }
 
 // indexPlugins maps lowercased plugin filenames to the mod folders shipping
