@@ -1,11 +1,9 @@
-name: Release build
+name: Test and release
 
-# Builds skyrim-audit.exe from this repository's Go source and attaches the share
-# zip to the release, so publishing a release never needs a manual upload.
-# Runs when a release is published (including a draft published from the GitHub
-# UI) and by hand, to rebuild an existing release on purpose. A plain commit or
-# tag does not rebuild: the zip's SHA-256 is recorded in CHECKSUMS.txt, so a new
-# asset on every push would make that note wrong within minutes.
+# The suite runs on every push to main and again before any release asset is
+# built, so a failing test keeps the zip off the release. Building and uploading
+# only happen for a published release or a manual run: a plain commit must not
+# replace the asset, whose SHA-256 is recorded in CHECKSUMS.txt.
 #
 # The source comes from the ref this workflow runs on, which is the default branch
 # for a published release. It is not pinned to the release tag: the v1.0.0 tag was
@@ -13,6 +11,8 @@ name: Release build
 # breaks the build. To build an older release on purpose, dispatch this workflow
 # from that ref and pass the tag to upload to.
 on:
+  push:
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
@@ -35,7 +35,13 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Test
+        run: go test ./...
+
+      # A failing step above stops the job here, so the zip cannot be attached
+      # unless the suite passed.
       - name: Build Windows executable
+        if: github.event_name != 'push'
         env:
           GOOS: windows
           GOARCH: amd64
@@ -43,9 +49,11 @@ jobs:
         run: go build -trimpath -ldflags "-s -w" -o skyrim-audit.exe .
 
       - name: Package shareable zip
+        if: github.event_name != 'push'
         run: zip -j skyrim-audit-share.zip skyrim-audit.exe READ-ME-FIRST.txt
 
       - name: Attach zip to the release
+        if: github.event_name != 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name || inputs.tag }}

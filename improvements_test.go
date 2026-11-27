@@ -486,16 +486,18 @@ func containsString(list []string, want string) bool {
 // class of trap fail a test instead of a user. Rows already exercised end to end
 // by a dedicated test (MASTER_UNCHECKED, DUPLICATE_PLUGIN) are not repeated here,
 // and OVERLAP is absent because its advice is that nothing needs doing.
+//
+// Where the advice says "untick" or "disable the plugin", the row leaves the
+// entry in plugins.txt without the asterisk, which is exactly what MO2 writes for
+// a disabled plugin. Deleting the line instead would be a different action.
 func TestActionableAdviceClearsFinding(t *testing.T) {
-	skyrim := func() []byte { return buildPlugin(flagMaster, 1.7, nil, 2) }
-	base := func(f *fixture) { f.dataPlugin("Skyrim.esm", skyrim()) }
+	base := func(f *fixture) { f.dataPlugin("Skyrim.esm", buildPlugin(flagMaster, 1.7, nil, 2)) }
 
 	cases := []struct {
 		name   string
 		code   string
 		plugin string
 		opts   Options
-		saves  bool
 		setup  func(*fixture)
 		act    func(*fixture)
 	}{
@@ -507,7 +509,7 @@ func TestActionableAdviceClearsFinding(t *testing.T) {
 				f.modlist("+M")
 				f.plugins("*Skyrim.esm", "*Needy.esp")
 			},
-			act: func(f *fixture) { f.plugins("*Skyrim.esm") },
+			act: func(f *fixture) { f.plugins("*Skyrim.esm", "Needy.esp") },
 		},
 		{
 			name: "MASTER_DISABLED shipped by a disabled mod", code: "MASTER_DISABLED", plugin: "Child.esp",
@@ -543,7 +545,7 @@ func TestActionableAdviceClearsFinding(t *testing.T) {
 				f.modlist("+Base", "+M")
 				f.plugins("*Skyrim.esm", "Parent.esp", "*Child.esp")
 			},
-			act: func(f *fixture) { f.plugins("*Skyrim.esm") },
+			act: func(f *fixture) { f.plugins("*Skyrim.esm", "Parent.esp", "Child.esp") },
 		},
 		{
 			name: "MASTER_OUT_OF_ORDER", code: "MASTER_OUT_OF_ORDER", plugin: "Child.esp",
@@ -562,7 +564,7 @@ func TestActionableAdviceClearsFinding(t *testing.T) {
 				base(f)
 				f.plugins("*Skyrim.esm", "*Ghost.esp")
 			},
-			act: func(f *fixture) { f.plugins("*Skyrim.esm") },
+			act: func(f *fixture) { f.plugins("*Skyrim.esm", "Ghost.esp") },
 		},
 		{
 			name: "PLUGIN_IN_DISABLED_MOD", code: "PLUGIN_IN_DISABLED_MOD", plugin: "Solo.esp",
@@ -582,7 +584,7 @@ func TestActionableAdviceClearsFinding(t *testing.T) {
 				f.modlist("+M")
 				f.plugins("*Skyrim.esm", "*Junk.esp")
 			},
-			act: func(f *fixture) { f.plugins("*Skyrim.esm") },
+			act: func(f *fixture) { f.plugins("*Skyrim.esm", "Junk.esp") },
 		},
 		{
 			name: "DUPLICATE_ENTRY", code: "DUPLICATE_ENTRY", plugin: "Shared.esp",
@@ -702,10 +704,10 @@ func TestActionableAdviceClearsFinding(t *testing.T) {
 				f.modlist("+M")
 				f.plugins("*Skyrim.esm", "*Needy.esp", "*Dependent.esp")
 			},
-			act: func(f *fixture) { f.plugins("*Skyrim.esm", "*Needy.esp") },
+			act: func(f *fixture) { f.plugins("*Skyrim.esm", "*Needy.esp", "Dependent.esp") },
 		},
 		{
-			name: "SAVE_PLUGIN_MISSING", code: "SAVE_PLUGIN_MISSING", plugin: "Saved.esp", saves: true,
+			name: "SAVE_PLUGIN_MISSING", code: "SAVE_PLUGIN_MISSING", plugin: "Saved.esp",
 			setup: func(f *fixture) {
 				base(f)
 				f.modPlugin("Keep", "Saved.esp", buildPlugin(0, 1.7, []string{"Skyrim.esm"}, 3))
@@ -721,26 +723,15 @@ func TestActionableAdviceClearsFinding(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newFixture(t)
 			tc.setup(f)
-			run := func() *Result {
-				if tc.saves {
-					return f.runWithSaves(tc.opts)
-				}
-				return f.runWith(tc.opts)
-			}
-			found := func(res *Result) *Finding {
-				for i := range res.Findings {
-					if res.Findings[i].Code == tc.code && res.Findings[i].Plugin == tc.plugin {
-						return &res.Findings[i]
-					}
-				}
-				return nil
-			}
+			// Every row looks only at the profile's own saves folder, so a save in
+			// the developer's Documents folder cannot change the result.
+			run := func() *Result { return f.runWithSaves(tc.opts) }
 
-			if found(run()) == nil {
+			if findFinding(run(), tc.code, tc.plugin) == nil {
 				t.Fatalf("fixture does not produce %s for %q", tc.code, tc.plugin)
 			}
 			tc.act(f)
-			if fd := found(run()); fd != nil {
+			if fd := findFinding(run(), tc.code, tc.plugin); fd != nil {
 				t.Errorf("%s for %q is still reported after its advice was followed: %+v", tc.code, tc.plugin, fd)
 			}
 		})
