@@ -52,3 +52,9 @@ skyrim-audit.exe -json              machine-readable findings (exit 1 on errors)
 ```
 
 Always close Mod Organizer 2 before letting it change `plugins.txt`: MO2 rewrites the profile on exit.
+
+## How this was built
+
+Written with an AI coding assistant, directed and reviewed by a human. That says nothing about how
+correct it is: the full Go source is in this repository, `go build` reproduces the exe, and
+`go test ./...` covers the audit rules, so the behaviour can be checked rather than taken on trust.
