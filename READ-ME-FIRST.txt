@@ -1,0 +1,45 @@
+skyrim-audit - offline load-order audit for Skyrim SE/AE on Mod Organizer 2
+
+1. Double-click skyrim-audit.exe.
+2. The first time it asks for your Mod Organizer 2 folder - pick the one that
+   holds ModOrganizer.ini (for a normal install: C:\Users\<you>\AppData\Local\
+   ModOrganizer\<instance>, or wherever you put a portable MO2). It remembers it.
+3. The audit opens in your browser at http://127.0.0.1:8721.
+4. Closing the black console window stops the program.
+
+If Windows shows "Windows protected your PC", choose More info -> Run anyway.
+The exe is unsigned, which is normal for a small self-made tool.
+
+If the folder dialog does not appear (or you picked the wrong folder), run it
+from a terminal instead:
+
+    skyrim-audit.exe -instance "C:\path\to\ModOrganizer"
+
+What it does: reads modlist.txt, plugins.txt and loadorder.txt from the profile
+MO2 has open, checks plugin masters (naming the mod that ships a disabled one),
+follows broken masters through everything that depends on them, checks
+ESL/light-plugin limits, the game version and loose-file overlaps, and compares
+the newest save's plugin list with the load order so a plugin you removed shows up
+before the save crashes. It can also move a mod to _skyrim-audit_quarantine. Only
+Nexus Mods artwork, mod search and requirement checks go over the network; those
+answers are cached for a week. The save check is offline and silent when no save
+is found.
+
+In the page:
+  - "Disable N plugins" unchecks only the plugins nothing installed can satisfy
+    (plugins.txt is backed up first). When the mod or master it needs is installed
+    but switched off, the page names the switch to flip instead: the mod, or the
+    master plugin itself when its mod is already enabled. Close MO2 before using
+    it: MO2 rewrites the profile on exit.
+  - "Quarantined mods" lists what was moved aside and puts it back, folder and
+    plugins included.
+  - "Save report" downloads a self-contained HTML report you can send to someone.
+
+From a terminal, the same checks without the page:
+
+    skyrim-audit.exe -v                 full text report
+    skyrim-audit.exe -fix               uncheck the plugins that cannot load
+    skyrim-audit.exe -report out.html   write the HTML report
+    skyrim-audit.exe -json              machine-readable findings (exit 1 on errors)
+
+Already have it running? A second launch opens on the next free port (8722).
