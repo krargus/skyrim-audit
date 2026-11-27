@@ -1,2 +1,38 @@
 # skyrim-audit
-Offline Skyrim SE/AE load-order auditor for Mod Organizer 2 (Windows exe).
+
+Offline load-order auditor for **Skyrim SE/AE** on **Mod Organizer 2**. Windows exe, no install, no account.
+
+## Download
+
+Grab the zip from the [Releases](../../releases) page, unzip it anywhere and run `skyrim-audit.exe`.
+
+Windows may warn that the exe is unsigned: choose **More info -> Run anyway**.
+
+## First run
+
+1. Double-click `skyrim-audit.exe`.
+2. Pick your Mod Organizer 2 folder - the one holding `ModOrganizer.ini`.
+3. The audit opens at http://127.0.0.1:8721.
+
+Closing the console window stops it.
+
+## What it checks
+
+- plugin masters, naming the mod that ships a disabled one
+- chains of plugins that depend on a broken master
+- ESL / light-plugin record limits and the plugin ceilings
+- game version and loose-file overlaps between mods
+- the newest save's plugin list against the current load order
+
+It can uncheck only plugins that nothing installed can satisfy (backing up `plugins.txt` first), quarantine a mod with a one-click restore, and write a self-contained HTML report. Nexus artwork, search and requirement checks are the only network calls, cached for a week.
+
+## Terminal use
+
+```
+skyrim-audit.exe -v                 full text report
+skyrim-audit.exe -fix               uncheck the plugins that cannot load
+skyrim-audit.exe -report out.html   write the HTML report
+skyrim-audit.exe -json              machine-readable findings (exit 1 on errors)
+```
+
+Always close Mod Organizer 2 before letting it change `plugins.txt`: MO2 rewrites the profile on exit.
