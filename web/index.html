@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>skyrim-audit</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c232c; --line:#2a3444;
+    --text:#e6edf3; --muted:#93a1b1; --err:#f85149; --warn:#d29922;
+    --info:#58a6ff; --ok:#3fb950; --accent:#ff9d3c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.55 "Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--info);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:Consolas,"Cascadia Mono",monospace;font-size:.86em;color:#c9d1d9}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px 60px}
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+  .brand{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .brand span{color:var(--accent)}
+  .where{color:var(--muted);font-size:13px;flex:1;min-width:220px}
+  button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--text);padding:7px 13px}
+  button:hover{border-color:#3d4b5f;background:#222b36}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#241505;font-weight:600}
+  button.danger{color:#ffb4ae;border-color:#5b2b28}
+  button.danger:hover{background:#3a1f1d}
+  button.small{padding:4px 9px;font-size:12.5px}
+  input[type=search],input[type=text]{font:inherit;background:#0b1017;color:var(--text);
+    border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-width:0}
+  input:focus{outline:2px solid #2b4c73;outline-offset:1px}
+  .banner{border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:16px;
+    background:linear-gradient(180deg,#171e27,#141a22);display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  .banner .ver{font-size:17px;font-weight:650}
+  .banner .note{color:var(--muted);font-size:13px;flex:1;min-width:240px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:1px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 16px}
+  .stat b{display:block;font-size:25px;line-height:1.15}
+  .stat small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+  .toolbar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .tab{border:1px solid var(--line);background:transparent;color:var(--muted);
+    padding:6px 13px;border-radius:999px;font-size:13.5px}
+  .tab.on{background:#243040;color:var(--text);border-color:#3b4b61}
+  .searchform{display:flex;gap:8px;margin-left:auto;flex:1;max-width:430px}
+  .searchform input{flex:1}
+  .finding{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--line);
+    border-radius:12px;padding:14px 16px;margin-bottom:11px}
+  .finding.error{border-left-color:var(--err)}
+  .finding.warn{border-left-color:var(--warn)}
+  .finding.info{border-left-color:var(--info)}
+  .fhead{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .chip{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px}
+  .chip.error{background:#3d1715;color:#ff9b95}
+  .chip.warn{background:#3a2d10;color:#e3b341}
+  .chip.info{background:#132a44;color:#8cc2ff}
+  .ftitle{font-weight:650;font-size:16px}
+  .fcode{color:#6b7a8d;font-size:12px;font-family:Consolas,monospace;margin-left:auto}
+  .target{margin-top:6px;font-size:13.5px;color:#b9c5d3;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .thumb{position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;
+    border-radius:8px;overflow:hidden;border:1px solid var(--line);flex:0 0 auto;
+    background:linear-gradient(135deg,#243040,#161d27);color:#8fa3ba;font-size:11px;font-weight:700;letter-spacing:.04em}
+  .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .thumb.xs{width:26px;height:26px;border-radius:6px;font-size:9px}
+  .modcell{display:flex;align-items:center;gap:9px}
+  .target .tag{background:#202a36;border:1px solid var(--line);border-radius:6px;
+    padding:1px 7px;font-size:12.5px;color:#cfd9e4}
+  .detail{margin:8px 0 0;color:#c3cedb}
+  .fix{margin:6px 0 0;color:var(--muted);font-size:13.5px}
+  .fix b{color:#cdd7e2}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  a.ext{border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:12.5px;display:inline-block}
+  .out{margin-top:12px}
+  .hits{display:grid;gap:8px;margin-top:8px}
+  .hit{display:flex;gap:11px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:11px 13px;color:var(--text)}
+  .hit .body{flex:1;min-width:0}
+  .hit:hover{text-decoration:none;border-color:#3d5170;background:#1f2833}
+  .hitname{font-weight:600}
+  .hitname .v{color:var(--muted);font-weight:400;font-size:12.5px;margin-left:6px}
+  .hitmeta{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .hit p{margin:6px 0 0;font-size:13.5px;color:#c3cedb}
+  .why{display:inline-block;margin-top:7px;font-size:11.5px;color:#9fd0b0;
+    background:#12281a;border:1px solid #1f3d2a;border-radius:999px;padding:1px 8px}
+  .muted{color:var(--muted)}
+  .bad{color:#ff9b95}
+  .empty{border:1px dashed var(--line);border-radius:12px;padding:26px;text-align:center;color:var(--muted)}
+  details.mods{margin-top:26px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+  details.mods summary{cursor:pointer;font-weight:600}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #202836}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.off td{color:#6f7d8d}
+  footer{margin-top:30px;color:#6b7a8d;font-size:12.5px;line-height:1.7}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">skyrim<span>-audit</span></div>
+    <div class="where" id="where">loading profile…</div>
+    <a class="ext" href="/api/report" download>Save report</a>
+    <button id="reload">Refresh audit</button>
+  </header>
+
+  <section class="banner" id="version"></section>
+  <section class="stats" id="stats"></section>
+
+  <section class="toolbar">
+    <div class="tabs" id="tabs"></div>
+    <form class="searchform" id="searchform">
+      <input type="search" id="q" placeholder="Deep search Nexus Mods for a patch or fix…" autocomplete="off">
+      <button class="primary" type="submit">Search</button>
+    </form>
+  </section>
+
+  <section id="searchout"></section>
+  <section id="findings"><p class="muted">Auditing…</p></section>
+  <section id="chain"></section>
+  <section id="quarantine"></section>
+  <section id="mods"></section>
+
+  <footer>
+    Plugin checks are offline. Nexus Mods results come from the public Nexus API and are
+    suggestions, not verified fixes — always read the mod page's requirements and game-version
+    notes before installing. A mod replacing another mod's files is normal; overrides a mod you
+    installed requires are not listed as problems. Close Mod Organizer 2 before removing a mod:
+    it rewrites these profile files on exit.
+  </footer>
+</div>
+
+<script>
+const state = { data: null, filter: 'all' };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = n => Number(n).toLocaleString('en-US');
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || res.statusText);
+  return text ? JSON.parse(text) : null;
+}
+
+async function load() {
+  document.getElementById('findings').innerHTML = '<p class="muted">Auditing…</p>';
+  try {
+    state.data = await api('/api/audit');
+    render();
+  } catch (e) {
+    document.getElementById('findings').innerHTML = '<p class="bad">Audit failed: ' + esc(e.message) + '</p>';
+  }
+}
+
+function render() {
+  const d = state.data, r = d.findings || [];
+  document.getElementById('where').innerHTML =
+    'profile <b>' + esc(d.profile) + '</b> · ' + esc(d.instance) +
+    '<br>' + (d.game_data ? 'Data: <code>' + esc(d.game_data) + '</code>' : '<span class="bad">game Data folder unknown</span>');
+
+  // Game version line: mod files (SKSE, Address Library, DLL plugins) are built
+  // per executable version, so this decides which file to pick on Nexus.
+  const g = d.game || {};
+  const dotColor = g.detected ? 'var(--ok)' : 'var(--warn)';
+  const verText = g.detected
+    ? 'Skyrim ' + esc(g.version) + ' — ' + esc(g.edition)
+    : 'Game version not detected';
+  document.getElementById('version').innerHTML =
+    '<span class="dot" style="background:' + dotColor + '"></span>' +
+    '<span class="ver">' + verText + '</span>' +
+    '<span class="muted">light-plugin record limit ' + num(d.esl_record_limit) + '</span>' +
+    '<span class="note">' + esc(g.note || '') + '</span>' +
+    (d.save_file ? '<span class="muted">save <code>' +
+      esc(String(d.save_file).split(/[\\/]/).pop()) + '</code> (' + num(d.save_plugins) + ' plugins)</span>' : '') +
+    (g.path ? '<span class="muted"><code>' + esc(g.path) + '</code></span>' : '');
+
+  const counts = d.counts || {error:0,warn:0,info:0};
+  const stats = [
+    ['Errors', counts.error, 'var(--err)'],
+    ['Warnings', counts.warn, 'var(--warn)'],
+    ['Improvements', counts.info, 'var(--info)'],
+    ['Full plugins', d.full_plugins, 'var(--text)'],
+    ['Light plugins', d.light_plugins, 'var(--text)'],
+    ['Plugins', num(d.listed) + ' listed', 'var(--text)']
+  ];
+  const disp = v => typeof v === 'number' ? num(v) : v;
+  document.getElementById('stats').innerHTML = stats.map(s =>
+    '<div class="stat"><small>' + s[0] + '</small><b style="color:' + s[2] + '">' + disp(s[1]) + '</b></div>'
+  ).join('');
+
+  const tabs = [
+    ['all', 'All', r.length],
+    ['error', 'Errors', counts.error],
+    ['warn', 'Warnings', counts.warn],
+    ['info', 'Improvements', counts.info]
+  ];
+  document.getElementById('tabs').innerHTML = tabs.map(t =>
+    '<button class="tab' + (state.filter === t[0] ? ' on' : '') + '" data-filter="' + t[0] + '">' +
+    t[1] + ' <span class="muted">' + t[2] + '</span></button>'
+  ).join('');
+
+  const list = r.filter(f => state.filter === 'all' || f.severity === state.filter);
+  document.getElementById('findings').innerHTML = list.length
+    ? list.map((f, i) => card(f, i)).join('')
+    : '<div class="empty">Nothing here. ' +
+      (state.filter === 'error' ? 'No errors: the load order should start.' : 'Empty category.') + '</div>';
+
+  renderMods(d.mods || []);
+  renderChain(d);
+  document.getElementById('searchout').innerHTML = '';
+  loadRemovals();
+}
+
+// Plugins that cannot load. Unchecking is only offered for the ones nothing
+// installed can satisfy; a plugin whose master is merely unchecked gets pointed
+// at that mod instead, so the button can never recommend disabling something that
+// would work once its master is enabled.
+function renderChain(d) {
+  const broken = d.broken_plugins || [];
+  const canDisable = d.disable_candidates || [];
+  const box = document.getElementById('chain');
+  if (!broken.length) { box.innerHTML = ''; return; }
+  let hint;
+  if (!canDisable.length) {
+    hint = 'What they need is installed but switched off. Switch on the mod or plugin named in the error above and these plugins load — nothing needs disabling.';
+  } else {
+    hint = 'Nothing installed provides what ' + (canDisable.length === 1 ? 'it needs' : 'they need') +
+      ', so unchecking is the only way to start the game right now. plugins.txt is backed up first.';
+    if (broken.length > canDisable.length) {
+      hint += ' The other ' + (broken.length - canDisable.length) + ' load once that unchecked mod or master is enabled.';
+    }
+  }
+  box.innerHTML = '<div class="banner" style="border-color:#5b2b28;background:#1c1416;margin-top:16px">' +
+    '<div style="flex:1;min-width:260px"><b class="bad">' + broken.length +
+      ' plugin(s) cannot load</b><div class="muted" style="font-size:13px;margin-top:4px">' +
+      esc(broken.join(', ')) + '</div><div class="muted" style="font-size:12.5px;margin-top:4px">' +
+      esc(hint) + '</div></div>' +
+    (canDisable.length ? '<button class="danger" data-fix="1">Disable ' + canDisable.length +
+      ' plugin' + (canDisable.length === 1 ? '' : 's') + '</button>' : '') +
+    '</div>';
+}
+
+async function loadRemovals() {
+  const box = document.getElementById('quarantine');
+  try {
+    const d = await api('/api/removals');
+    const list = d.removals || [];
+    box.innerHTML = list.length
+      ? '<details class="mods" style="margin-top:18px"><summary>Quarantined mods (' + list.length +
+        ') — can be put back</summary><table><tbody>' +
+        list.map(r => '<tr><td>' + esc(r.mod) + '</td><td class="muted" style="font-size:12px">' +
+          esc(r.new_path) + '</td><td style="text-align:right"><button class="small" data-restore="' +
+          esc(r.mod) + '">Restore</button></td></tr>').join('') +
+        '</tbody></table></details>'
+      : '';
+  } catch (e) {
+    box.innerHTML = '';
+  }
+}
+
+function nexusURL(id) {
+  return 'https://www.nexusmods.com/' + encodeURIComponent(state.data.nexus_game) + '/mods/' + id;
+}
+function modBy(name) {
+  return (state.data.mods || []).find(m => m.name === name) || null;
+}
+// Link straight to an installed mod's own page. That is what a conflict needs;
+// another search hit would only be one more mod to install.
+function modPageLink(name) {
+  const m = name ? modBy(name) : null;
+  if (!m || !m.nexus_id) return '';
+  return '<a class="ext" href="' + nexusURL(m.nexus_id) + '" target="_blank" rel="noopener">' +
+    esc(name) + ' on Nexus ↗</a>';
+}
+
+function initials(name) {
+  return String(name || '?').replace(/[^A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean)
+    .slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+}
+// Nexus preview art, with initials behind the image so a missing or blocked
+// picture still leaves a readable tile.
+function art(url, name, cls) {
+  return '<span class="thumb' + (cls ? ' ' + cls : '') + '"><span>' + esc(initials(name)) + '</span>' +
+    (url ? '<img src="' + esc(url) + '" alt="" loading="lazy" referrerpolicy="no-referrer" ' +
+      'onerror="this.remove()">' : '') + '</span>';
+}
+function thumb(name, cls) {
+  const m = name ? modBy(name) : null;
+  return art(m && m.thumbnail ? m.thumbnail : '', name, cls);
+}
+
+function card(f, i) {
+  const target = f.plugin || f.mod || '';
+  const label = f.severity === 'error' ? 'Error' : f.severity === 'warn' ? 'Warning' : 'Improvement';
+  const q = f.search || '';
+  const lensLink = 'https://www.nexusmods.com/' + encodeURIComponent(state.data.nexus_game) +
+    '/search/?gsearch=' + encodeURIComponent(q) + '&gsearchType=mods';
+  return '<article class="finding ' + esc(f.severity) + '">' +
+    '<div class="fhead"><span class="chip ' + esc(f.severity) + '">' + label + '</span>' +
+    '<span class="ftitle">' + esc(f.title || f.code) + '</span>' +
+    '<span class="fcode">' + esc(f.code) + '</span></div>' +
+    (target ? '<div class="target">' + (f.mod ? thumb(f.mod, 'xs') : '') + (f.plugin ? 'plugin ' : 'mod ') +
+      '<span class="tag">' + esc(target) + '</span>' +
+      (f.mod && f.mod !== target ? ' · in mod <span class="tag">' + esc(f.mod) + '</span>' : '') + '</div>' : '') +
+    '<p class="detail">' + esc(f.detail) + '</p>' +
+    (f.fix ? '<p class="fix"><b>What to do:</b> ' + esc(f.fix) + '</p>' : '') +
+    '<div class="actions">' +
+      (q ? '<button class="small" data-search="' + esc(q) + '" data-needle="' + esc(f.plugin || '') +
+        '" data-target="res-' + i + '">Find this mod on Nexus</button>' : '') +
+      (f.winner ? modPageLink(f.winner) : '') +
+      (f.mod ? modPageLink(f.mod) : '') +
+      (q ? '<a class="ext" href="' + lensLink + '" target="_blank" rel="noopener">' +
+        'Search nexusmods.com ↗</a>' : '') +
+      (f.mod ? '<button class="small danger" data-quarantine="' + esc(f.mod) + '">Disable &amp; quarantine ' +
+        esc(f.mod) + '</button>' : '') +
+      (f.mod ? '<button class="small danger" data-delete="' + esc(f.mod) + '">Delete…</button>' : '') +
+    '</div>' +
+    '<div class="out" id="res-' + i + '"></div>' +
+    '</article>';
+}
+
+// Overrides required by an installed mod are how addons work, so they are listed
+// separately instead of being counted as improvements.
+function expectedNote() {
+  const ex = state.data.expected_overlaps || [];
+  if (!ex.length) return '';
+  const items = ex.slice(0, 6).map(e =>
+    esc(e.winner) + ' over ' + esc(e.loser) + ' (' + num(e.files) + ' file' + (e.files === 1 ? '' : 's') + ')'
+  ).join(', ');
+  return '<p class="muted" style="margin:10px 0 0;font-size:13px">Expected overrides, not problems: ' +
+    items + (ex.length > 6 ? ', …' : '') + '</p>';
+}
+
+function renderMods(mods) {
+  if (!mods.length) { document.getElementById('mods').innerHTML = ''; return; }
+  const on = mods.filter(m => m.enabled).length;
+  const rows = mods.map(m =>
+    '<tr class="' + (m.enabled ? '' : 'off') + '">' +
+      '<td class="num">' + m.priority + '</td>' +
+      '<td><div class="modcell">' + thumb(m.name) + '<span>' + (m.nexus_id
+        ? '<a href="' + nexusURL(m.nexus_id) + '" target="_blank" rel="noopener">' + esc(m.name) + ' ↗</a>'
+        : esc(m.name)) + '</span></div></td>' +
+      '<td>' + (m.enabled ? 'enabled' : 'disabled') + '</td>' +
+      '<td class="num">' + num(m.plugins) + '</td>' +
+      '<td class="num">' + num(m.files) + '</td>' +
+      '<td style="text-align:right">' +
+        '<button class="small danger" data-quarantine="' + esc(m.name) + '">Quarantine</button> ' +
+        '<button class="small danger" data-delete="' + esc(m.name) + '">Delete…</button>' +
+      '</td></tr>'
+  ).join('');
+  document.getElementById('mods').innerHTML =
+    '<details class="mods"><summary>Installed mods (' + on + ' enabled of ' + mods.length +
+    ') — priority 1 wins file conflicts</summary>' + expectedNote() +
+    '<table><thead><tr><th>#</th><th>Mod</th><th>State</th><th>Plugins</th><th>Loose files</th><th></th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></details>';
+}
+
+function hits(list, meta) {
+  if (!list.length) return '<p class="muted">No Nexus matches. Try a shorter query.</p>';
+  return '<div class="hits">' + list.map(m =>
+    '<a class="hit" href="' + esc(m.url) + '" target="_blank" rel="noopener">' +
+      art(m.thumbnail, m.name) +
+      '<div class="body">' +
+        '<div class="hitname">' + esc(m.name) +
+          (m.version ? '<span class="v">v' + esc(m.version) + '</span>' : '') + '</div>' +
+        '<div class="hitmeta">' + esc(m.author || 'unknown author') +
+          ' · ' + num(m.endorsements) + ' endorsements · ' + num(m.downloads) + ' downloads' +
+          (m.category ? ' · ' + esc(m.category) : '') +
+          (m.updated ? ' · updated ' + esc(String(m.updated).slice(0, 10)) : '') + '</div>' +
+        (m.summary ? '<p>' + esc(m.summary) + '</p>' : '') +
+        (m.why ? '<span class="why">' + esc(m.why) + '</span>' : '') +
+        '<div class="hitmeta">nexusmods.com/' + esc(meta.game) + '/mods/' + m.id + ' ↗</div>' +
+      '</div>' +
+    '</a>'
+  ).join('') + '</div>';
+}
+
+async function doSearch(box, q, needle) {
+  box.innerHTML = '<p class="muted">Searching Nexus Mods for “' + esc(q) + '”…</p>';
+  try {
+    const d = await api('/api/search?q=' + encodeURIComponent(q) + '&needle=' + encodeURIComponent(needle || ''));
+    box.innerHTML = hits(d.results || [], d);
+  } catch (e) {
+    box.innerHTML = '<p class="bad">Search failed: ' + esc(e.message) + '</p>';
+  }
+}
+
+async function disableBroken() {
+  const broken = state.data.disable_candidates || [];
+  if (!broken.length) return;
+  if (!confirm('Uncheck ' + broken.length + ' plugin(s) that cannot load?\n\n' + broken.join('\n') +
+      '\n\nClose MO2 first: it rewrites these files on exit. plugins.txt is backed up first.')) return;
+  try {
+    const out = await api('/api/fix', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plugins: broken })
+    });
+    let msg = 'Unchecked ' + (out.disabled || []).length + ' plugin(s).';
+    if (out.skipped && out.skipped.length) msg += '\n\nNot in plugins.txt, so left alone: ' + out.skipped.join(', ');
+    alert(msg);
+    load();
+  } catch (e) {
+    alert('Could not disable the plugins:\n' + e.message);
+  }
+}
+
+async function restoreMod(name) {
+  if (!confirm('Put "' + name + '" back?\n\nIts folder returns to the mods folder, the mod is re-enabled, ' +
+      'and its plugins are re-checked at the end of the load order. Close MO2 first.')) return;
+  try {
+    const out = await api('/api/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name })
+    });
+    alert('Restored ' + out.mod + '.' + (out.unchecked_plugins && out.unchecked_plugins.length
+      ? '\n\nRe-enabled plugin(s): ' + out.unchecked_plugins.join(', ') : '') +
+      '\n\nRefresh the audit to see the new state.');
+    load();
+  } catch (e) {
+    alert('Could not restore ' + name + ':\n' + e.message);
+  }
+}
+
+async function removeMod(name, action) {
+  let typed = '';
+  if (action === 'delete') {
+    typed = prompt('Delete "' + name + '" permanently?\n\nThis erases the whole mod folder. ' +
+      'Type the mod name exactly to confirm.');
+    if (typed === null) return;
+    if (typed.trim() !== name) { alert('Name did not match. Nothing was deleted.'); return; }
+    typed = typed.trim();
+  } else if (!confirm('Remove "' + name + '" from this profile?\n\n' +
+      'Its plugins are unchecked and the folder moves to ' + '_skyrim-audit_quarantine' +
+      ' inside the mods folder, so you can move it back. Close MO2 first.')) {
+    return;
+  }
+  try {
+    const out = await api('/api/mod', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, action: action, typed: typed })
+    });
+    const parts = [out.mode === 'delete' ? 'Deleted ' + out.mod : 'Quarantined ' + out.mod];
+    if (out.new_path) parts.push('moved to ' + out.new_path);
+    if (out.unchecked_plugins && out.unchecked_plugins.length)
+      parts.push('unchecked plugin(s): ' + out.unchecked_plugins.join(', '));
+    if (out.backups && out.backups.length)
+      parts.push('backups: ' + out.backups.map(b => b.split(/[\\/]/).pop()).join(', '));
+    alert(parts.join('\n\n'));
+    load();
+  } catch (e) {
+    alert('Could not remove ' + name + ':\n' + e.message);
+  }
+}
+
+document.addEventListener('click', ev => {
+  const tab = ev.target.closest('.tab');
+  if (tab) { state.filter = tab.dataset.filter; render(); return; }
+  const s = ev.target.closest('button[data-search]');
+  if (s) {
+    const box = document.getElementById(s.dataset.target);
+    if (box) doSearch(box, s.dataset.search, s.dataset.needle);
+    return;
+  }
+  const qm = ev.target.closest('button[data-quarantine]');
+  if (qm) { removeMod(qm.dataset.quarantine, 'quarantine'); return; }
+  const dm = ev.target.closest('button[data-delete]');
+  if (dm) { removeMod(dm.dataset.delete, 'delete'); return; }
+  const fx = ev.target.closest('button[data-fix]');
+  if (fx) { disableBroken(); return; }
+  const rs = ev.target.closest('button[data-restore]');
+  if (rs) { restoreMod(rs.dataset.restore); return; }
+});
+
+document.getElementById('reload').addEventListener('click', load);
+document.getElementById('searchform').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const q = document.getElementById('q').value.trim();
+  if (!q) return;
+  const box = document.getElementById('searchout');
+  box.scrollIntoView({ block: 'nearest' });
+  doSearch(box, q, '');
+});
+
+load();
+</script>
+</body>
+</html>
