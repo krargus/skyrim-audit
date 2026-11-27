@@ -39,6 +39,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          # The module has no dependencies, so there is no go.sum for setup-go's
+          # default cache key. Without this the build cache is never saved, and
+          # every run recompiles the standard library from cold.
+          cache-dependency-path: go.mod
 
       - run: go test ./...
 
@@ -54,6 +58,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          # The module has no dependencies, so there is no go.sum for setup-go's
+          # default cache key. Without this the build cache is never saved, and
+          # every run recompiles the standard library from cold.
+          cache-dependency-path: go.mod
 
       - name: Build Windows executable
         env:
