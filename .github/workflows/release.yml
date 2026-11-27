@@ -6,6 +6,12 @@ name: Release build
 # UI) and by hand, to rebuild an existing release on purpose. A plain commit or
 # tag does not rebuild: the zip's SHA-256 is recorded in CHECKSUMS.txt, so a new
 # asset on every push would make that note wrong within minutes.
+#
+# The source comes from the ref this workflow runs on, which is the default branch
+# for a published release. It is not pinned to the release tag: the v1.0.0 tag was
+# created before the Go source was committed and has no go.mod, so checking it out
+# breaks the build. To build an older release on purpose, dispatch this workflow
+# from that ref and pass the tag to upload to.
 on:
   release:
     types: [published]
@@ -23,10 +29,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the released source
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
