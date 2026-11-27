@@ -1,10 +1,14 @@
 name: Release build
 
-# Every push to main rebuilds the Windows binary and refreshes the zip attached
-# to the v1.0.0 release, so the download always matches the source in this repo.
+# Rebuilds the Windows binary and refreshes the zip attached to the release.
+# Runs when a v* tag is pushed, or by hand. Commits to main deliberately do NOT
+# rebuild: the published zip's SHA-256 is recorded in CHECKSUMS.txt, and a new
+# asset on every commit would make that note wrong within minutes.
+# A tag build needs a release to exist for that tag (gh release upload fails
+# otherwise), and the numbers in CHECKSUMS.txt should be updated with it.
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -30,7 +34,8 @@ jobs:
       - name: Package shareable zip
         run: zip -j skyrim-audit-share.zip skyrim-audit.exe READ-ME-FIRST.txt
 
-      - name: Attach zip to the v1.0.0 release
+      - name: Attach zip to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload v1.0.0 skyrim-audit-share.zip --clobber --repo "${{ github.repository }}"
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0' }}
+        run: gh release upload "$TAG" skyrim-audit-share.zip --clobber --repo "${{ github.repository }}"

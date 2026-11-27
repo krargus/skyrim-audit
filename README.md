@@ -19,8 +19,8 @@ Get-FileHash skyrim-audit-share.zip -Algorithm SHA256      (PowerShell)
 ```
 
 The hash has to match the one in `CHECKSUMS.txt`. If it does not, download the zip again; if it
-still does not, do not run it. The release page also shows each asset's SHA-256, which is the value
-to compare after a rebuild.
+still does not, do not run it. The release page also shows each asset's SHA-256, so if a newer
+build has replaced the zip, compare against that value instead.
 
 ## First run
 
