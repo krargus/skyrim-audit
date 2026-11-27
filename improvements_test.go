@@ -587,7 +587,7 @@ func TestActionableAdviceClearsFinding(t *testing.T) {
 			act: func(f *fixture) { f.plugins("*Skyrim.esm", "Junk.esp") },
 		},
 		{
-			name: "DUPLICATE_ENTRY", code: "DUPLICATE_ENTRY", plugin: "Shared.esp",
+			name: "DUPLICATE_ENTRY in plugins.txt", code: "DUPLICATE_ENTRY", plugin: "Shared.esp",
 			setup: func(f *fixture) {
 				base(f)
 				f.modPlugin("M", "Shared.esp", buildPlugin(0, 1.7, []string{"Skyrim.esm"}, 3))
@@ -595,6 +595,20 @@ func TestActionableAdviceClearsFinding(t *testing.T) {
 				f.plugins("*Skyrim.esm", "*Shared.esp", "*Shared.esp")
 			},
 			act: func(f *fixture) { f.plugins("*Skyrim.esm", "*Shared.esp") },
+		},
+		// The repeat can sit in loadorder.txt instead, with plugins.txt naming the
+		// plugin once: the enabled order is what the engine reads, so that is the
+		// file whose duplicate has to be found and whose edit has to clear it.
+		{
+			name: "DUPLICATE_ENTRY in loadorder.txt", code: "DUPLICATE_ENTRY", plugin: "Shared.esp",
+			setup: func(f *fixture) {
+				base(f)
+				f.modPlugin("M", "Shared.esp", buildPlugin(0, 1.7, []string{"Skyrim.esm"}, 3))
+				f.modlist("+M")
+				f.loadOrder("Skyrim.esm", "Shared.esp", "Shared.esp")
+				f.plugins("*Skyrim.esm", "*Shared.esp")
+			},
+			act: func(f *fixture) { f.loadOrder("Skyrim.esm", "Shared.esp") },
 		},
 		{
 			name: "NOT_IN_LOADORDER", code: "NOT_IN_LOADORDER", plugin: "Loose.esp",
