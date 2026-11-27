@@ -43,3 +43,5 @@ From a terminal, the same checks without the page:
     skyrim-audit.exe -json              machine-readable findings (exit 1 on errors)
 
 Already have it running? A second launch opens on the next free port (8722).
+
+Made with an AI coding assistant, directed and reviewed by a human.
