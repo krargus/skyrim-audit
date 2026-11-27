@@ -6,9 +6,15 @@ name: Test and release
 # release; a push to main only runs the suite. The release job needs every test
 # run, so nothing is built or attached unless the suite passes everywhere.
 #
-# The source is the ref this workflow runs on - the default branch for a published
-# release - not the release tag: the v1.0.0 tag predates the Go source and has no
-# go.mod, so checking it out breaks the build.
+# What gets built is whatever ref the run checks out: the pushed commit for a push,
+# the commit the release is tagged at for a published release, and the branch or tag
+# named on a manual run (normally main). The `tag` input of a manual run only says
+# where the zip is uploaded; it does not select the source.
+#
+# That is why v1.0.0 is uploaded by dispatching this workflow on main: its tag points
+# at 4388e19, a commit from before the Go source existed, so a run started by
+# publishing that release finds no go.mod and cannot build. The dispatch builds
+# main's source and uploads the zip to the v1.0.0 release.
 on:
   push:
     branches: [main]
