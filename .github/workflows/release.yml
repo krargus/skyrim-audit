@@ -1,15 +1,12 @@
 name: Test and release
 
-# The suite runs on every push to main and again before any release asset is
-# built, so a failing test keeps the zip off the release. Building and uploading
-# only happen for a published release or a manual run: a plain commit must not
-# replace the asset, whose SHA-256 is recorded in CHECKSUMS.txt.
+# A published release or a manual run builds the Windows exe and attaches the zip
+# to that release; a push to main only runs the suite. The release job needs the
+# test job, so nothing is built or attached unless the suite passes.
 #
-# The source comes from the ref this workflow runs on, which is the default branch
-# for a published release. It is not pinned to the release tag: the v1.0.0 tag was
-# created before the Go source was committed and has no go.mod, so checking it out
-# breaks the build. To build an older release on purpose, dispatch this workflow
-# from that ref and pass the tag to upload to.
+# The source is the ref this workflow runs on - the default branch for a published
+# release - not the release tag: the v1.0.0 tag predates the Go source and has no
+# go.mod, so checking it out breaks the build.
 on:
   push:
     branches: [main]
@@ -18,15 +15,15 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to build and attach the zip to
+        description: Release tag to attach the zip to
         required: true
         default: v1.0.0
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,13 +32,22 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Test
-        run: go test ./...
+      - run: go test ./...
 
-      # A failing step above stops the job here, so the zip cannot be attached
-      # unless the suite passed.
+  release:
+    needs: test
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
       - name: Build Windows executable
-        if: github.event_name != 'push'
         env:
           GOOS: windows
           GOARCH: amd64
@@ -49,11 +55,9 @@ jobs:
         run: go build -trimpath -ldflags "-s -w" -o skyrim-audit.exe .
 
       - name: Package shareable zip
-        if: github.event_name != 'push'
         run: zip -j skyrim-audit-share.zip skyrim-audit.exe READ-ME-FIRST.txt
 
       - name: Attach zip to the release
-        if: github.event_name != 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name || inputs.tag }}
