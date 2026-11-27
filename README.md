@@ -8,9 +8,24 @@ Grab the zip from the [Releases](../../releases) page, unzip it anywhere and run
 
 Windows may warn that the exe is unsigned: choose **More info -> Run anyway**.
 
+## Verify your download
+
+[`CHECKSUMS.txt`](../CHECKSUMS.txt) gives the version, the commit the zip was built from, and the
+SHA-256 of `skyrim-audit-share.zip`. Check it before running the exe:
+
+```
+certutil -hashfile skyrim-audit-share.zip SHA256          (Command Prompt)
+Get-FileHash skyrim-audit-share.zip -Algorithm SHA256      (PowerShell)
+```
+
+The hash has to match the one in `CHECKSUMS.txt`. If it does not, download the zip again; if it
+still does not, do not run it. The release page also shows each asset's SHA-256, which is the value
+to compare after a rebuild.
+
 ## First run
 
-1. Double-click `skyrim-audit.exe`.
+1.
+Double-click `skyrim-audit.exe`.
 2. Pick your Mod Organizer 2 folder - the one holding `ModOrganizer.ini`.
 3. The audit opens at http://127.0.0.1:8721.
 
@@ -24,7 +39,8 @@ Closing the console window stops it.
 - game version and loose-file overlaps between mods
 - the newest save's plugin list against the current load order
 
-It can uncheck only plugins that nothing installed can satisfy (backing up `plugins.txt` first), quarantine a mod with a one-click restore, and write a self-contained HTML report. Nexus artwork, search and requirement checks are the only network calls, cached for a week.
+It can uncheck only plugins that nothing installed can satisfy (backing up
+`plugins.txt` first), quarantine a mod with a one-click restore, and write a self-contained HTML report. Nexus artwork, search and requirement checks are the only network calls, cached for a week.
 
 ## Terminal use
 

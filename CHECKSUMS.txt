@@ -1,0 +1,45 @@
+skyrim-audit - checksums and version
+====================================
+
+  release      v1.0.0
+  built from   69c9a6172636e4e9816bd779d0b2c4627b905a37 (main)
+  built by     GitHub Actions, .github/workflows/release.yml
+  built on     2026-11-27
+  target       windows/amd64, Go 1.25 (from go.mod), -trimpath -ldflags "-s -w"
+  contents     skyrim-audit.exe + READ-ME-FIRST.txt
+
+  file                       bytes     SHA-256
+  skyrim-audit-share.zip     2967217   efb4f4cce06b56e2ea954f82e73eb220e51a15222cd315261ed8283bef319d99
+
+How to check
+------------
+Windows Command Prompt:
+  certutil -hashfile skyrim-audit-share.zip SHA256
+
+Windows PowerShell:
+  Get-FileHash skyrim-audit-share.zip -Algorithm SHA256
+
+macOS / Linux:
+  shasum -a 256 skyrim-audit-share.zip
+
+The printed hash must equal the SHA-256 above. certutil prints it lowercase,
+and older Windows builds put spaces between byte pairs - ignore the spaces.
+A match means the zip is the one built from the commit named above and was not
+altered on the way to you.
+
+If it does not match, download the zip again from the Releases page. If it still
+does not match, do not run the exe.
+
+What this proves, and what it does not
+--------------------------------------
+A matching hash proves the file is byte for byte the archive this repository's
+workflow built from the commit above. It does not prove who built it: the exe is
+unsigned, so Windows will still warn on first run. You can rebuild it yourself
+with `go build -trimpath -ldflags "-s -w" -o skyrim-audit.exe .` on Windows.
+
+Keeping this current
+The workflow rebuilds the zip from source on every push to main and replaces the
+release asset, so its hash changes when the source does. GitHub lists each
+asset's current SHA-256 on the release page; if the release has been rebuilt
+since this note was written, that value is the one to compare, and the "built
+from" commit above names the build these numbers belong to.
