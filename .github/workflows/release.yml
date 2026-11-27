@@ -1,8 +1,10 @@
 name: Test and release
 
-# A published release or a manual run builds the Windows exe and attaches the zip
-# to that release; a push to main only runs the suite. The release job needs the
-# test job, so nothing is built or attached unless the suite passes.
+# The suite runs on both platforms, because the exe we ship is Windows and the
+# audit's path handling and case folding behave differently there. A published
+# release or a manual run then builds the Windows exe and attaches the zip to that
+# release; a push to main only runs the suite. The release job needs every test
+# run, so nothing is built or attached unless the suite passes everywhere.
 #
 # The source is the ref this workflow runs on - the default branch for a published
 # release - not the release tag: the v1.0.0 tag predates the Go source and has no
@@ -24,7 +26,13 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      # One failing platform must not cancel the other: a Linux-only failure and a
+      # Windows-only failure point at different code.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
