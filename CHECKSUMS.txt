@@ -2,14 +2,14 @@ skyrim-audit - checksums and version
 ====================================
 
   release      v1.0.0
-  built from   7299669d4d9115f57bc450653f30bd4310afe709 (main)
+  built from   184c4e9ab6dd0afd32c412dcef7021aabf8287b3 (main)
   built by     GitHub Actions, .github/workflows/release.yml
   built on     2026-11-27
   target       windows/amd64, Go 1.25 (from go.mod), -trimpath -ldflags "-s -w"
   contents     skyrim-audit.exe + READ-ME-FIRST.txt
 
   file                       bytes     SHA-256
-  skyrim-audit-share.zip     2967216   18cb57df9e1f70df320f67e28b0f0c43c0eb3173f3d1d39a568412a35bea4114
+  skyrim-audit-share.zip     2967257   8d871d9ec32fe194cbb8f13f262e7da2a4e47a7889bea073be5415f4813df0ff
 
 How to check
 ------------
