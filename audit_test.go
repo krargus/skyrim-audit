@@ -481,6 +481,61 @@ func TestAuditDuplicatePluginClearsWhenLoserGone(t *testing.T) {
 	})
 }
 
+// Windows compares filenames without regard to case, and people hand-edit
+// plugins.txt, so a name spelled differently from the file on disk must still
+// resolve. The Data folder is where this shows up most: skyrim.esm written by
+// hand for the Skyrim.esm the game ships. The audit has to reach the same answer
+// on a case-sensitive filesystem as on the one the game runs on.
+func TestAuditPluginNameCasingDiffersFromDataFile(t *testing.T) {
+	f := newFixture(t)
+	f.dataPlugin("Skyrim.esm", buildPlugin(flagMaster, 1.7, nil, 2))
+	f.modPlugin("M", "Needy.esp", buildPlugin(0, 1.7, []string{"Skyrim.esm"}, 3))
+	f.modlist("+M")
+	f.plugins("*skyrim.esm", "*Needy.esp")
+
+	res := f.run()
+	if hasCode(res, "PLUGIN_MISSING") {
+		t.Fatalf("the file is in Data under another casing, not missing: %+v", res.Findings)
+	}
+	if hasCode(res, "MASTER_MISSING") {
+		t.Fatalf("Needy.esp masters Skyrim.esm, which is present: %+v", res.Findings)
+	}
+	if res.Counts.Error != 0 {
+		t.Errorf("expected no errors: %+v", res.Findings)
+	}
+	if res.Enabled != 2 || res.Full != 2 {
+		t.Errorf("enabled=%d full=%d, want 2 and 2", res.Enabled, res.Full)
+	}
+}
+
+// The same plugin listed twice with different casing is one plugin and one
+// duplicate warning: the comparison folds case, as MO2's own does when it writes
+// plugins.txt back out.
+func TestAuditDuplicateEntryIgnoresCase(t *testing.T) {
+	f := newFixture(t)
+	f.dataPlugin("Skyrim.esm", buildPlugin(flagMaster, 1.7, nil, 2))
+	f.modPlugin("M", "Shared.esp", buildPlugin(0, 1.7, []string{"Skyrim.esm"}, 3))
+	f.modlist("+M")
+	f.plugins("*Skyrim.esm", "*Shared.esp", "*shared.ESP")
+
+	res := f.run()
+	dups := 0
+	for _, fd := range res.Findings {
+		if fd.Code == "DUPLICATE_ENTRY" {
+			dups++
+		}
+	}
+	if dups != 1 {
+		t.Fatalf("want exactly one DUPLICATE_ENTRY, got %d: %+v", dups, res.Findings)
+	}
+	if res.Enabled != 2 {
+		t.Errorf("enabled = %d, want 2: the repeated spelling must not count as another plugin", res.Enabled)
+	}
+	if res.Counts.Error != 0 {
+		t.Errorf("a casing repeat is a warning, not an error: %+v", res.Findings)
+	}
+}
+
 func TestAuditLightOverCapacity(t *testing.T) {
 	f := newFixture(t)
 	f.dataPlugin("Skyrim.esm", buildPlugin(flagMaster, 1.7, nil, 2))
