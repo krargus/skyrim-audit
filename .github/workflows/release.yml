@@ -1,0 +1,36 @@
+name: Release build
+
+# Every push to main rebuilds the Windows binary and refreshes the zip attached
+# to the v1.0.0 release, so the download always matches the source in this repo.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build Windows executable
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: go build -trimpath -ldflags "-s -w" -o skyrim-audit.exe .
+
+      - name: Package shareable zip
+        run: zip -j skyrim-audit-share.zip skyrim-audit.exe READ-ME-FIRST.txt
+
+      - name: Attach zip to the v1.0.0 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload v1.0.0 skyrim-audit-share.zip --clobber --repo "${{ github.repository }}"
