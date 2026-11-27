@@ -2,14 +2,14 @@ skyrim-audit - checksums and version
 ====================================
 
   release      v1.0.0
-  built from   a59a5df64023892ff965d7c16454dd98f8040653 (main)
+  built from   7299669d4d9115f57bc450653f30bd4310afe709 (main)
   built by     GitHub Actions, .github/workflows/release.yml
   built on     2026-11-27
   target       windows/amd64, Go 1.25 (from go.mod), -trimpath -ldflags "-s -w"
   contents     skyrim-audit.exe + READ-ME-FIRST.txt
 
   file                       bytes     SHA-256
-  skyrim-audit-share.zip     2967216   7e3d739ad10c956f18b88e6bb9cb875f82d84a88c31b5dbc66743bb051666a52
+  skyrim-audit-share.zip     2967216   18cb57df9e1f70df320f67e28b0f0c43c0eb3173f3d1d39a568412a35bea4114
 
 How to check
 ------------
@@ -40,8 +40,8 @@ on Windows - the result may differ in bytes (the build stamps commit metadata)
 but is the same program.
 
 When this file is updated
-The workflow builds and replaces the release zip when a `v*` tag is pushed or it
-is run manually, and commits to main rebuild nothing. So these numbers stay
+The workflow builds and replaces the release zip when a release is published, or
+when it is run by hand; a commit alone rebuilds nothing. So these numbers stay
 correct until the next release: GitHub lists each asset's SHA-256 on the
 release page, and if a new build has replaced the zip, that value is the one to
 compare while this file still describes the previous build.
